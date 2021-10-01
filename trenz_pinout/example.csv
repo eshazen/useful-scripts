@@ -1,0 +1,5 @@
+PACKAGE_PIN,PORT,IOSTANDARD,Trenz_Net,Schem_Net
+A1,sclk,LVCMOS18,B34_L11_N,Serial_control1
+B2,sdata,LVCMOS18,B34_L11_P,Serial_control2
+C3,senable,LVCMOS18,B34_L12_N,Serial_control3
+D4,silly,LVCMOS18,B34_L11_P,Something_Else
