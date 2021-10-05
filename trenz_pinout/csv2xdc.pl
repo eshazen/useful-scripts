@@ -11,13 +11,21 @@
 #   Xilinx constraint file
 #   VHDL prototype entity
 #
+# usage:  csv2xdc.pl <csv> <portname> <constr> <vhdl>
+#   <csv>      is CSV input file name
+#   <portname> is name of column specifying the VHDL port name to use
+#   <constr>   is the output file name for the Xilinx constraints
+#   <vhdl>     is the output file name for the VHDL entity
+#
+
 use Text::CSV qw( csv );
 use Data::Dumper;
 
 die "Usage:  $0 <csv_file> <port_column> <constraint_file> <vhdl_file>\n" if( $#ARGV != 3);
 
-my $port = $ARGV[1];
+my $port = $ARGV[1];  # get VHDL port column name
 
+# open the output files
 open CF, "> $ARGV[2]" or die "opening $ARGV[2] for output";
 open VF, "> $ARGV[3]" or die "opening $ARGV[3] for output";
 
@@ -34,8 +42,7 @@ if( !$header->{"PACKAGE_PIN"} || !$header->{$port}) {
     exit;
 }
 
-# array to store "extra" column names
-my @extras;
+my @extras;  # array to store "extra" column names
 
 # make a list of "extra" column names
 foreach my $col ( @cols) {
@@ -49,12 +56,12 @@ print VF qq{entity test is
   port (
 };
 
-my @names;
-my %range;
-my %dirs;
+# hashes to store information about ports.  Both have "dir" for direction in/out
+# vectors have in addition (low,high) for subscript range
+my %scalars;			# scalar ports
+my %vectors;			# vector ports
 
 # loop over each row in the file
-print "Processing $nrows rows\n";
 foreach my $row ( @{$aoh}) {
     # print a comment with the extra columns
     print CF "\n# ";
@@ -63,9 +70,8 @@ foreach my $row ( @{$aoh}) {
     };
     print CF "\n";
 
-    # create the [get_ports xxx] clause
-    my $nport = $row->{$port};
-    my $gport = " [get_ports " . $gport . "]";
+    my $nport = $row->{$port};	               # port name
+    my $gport = " [get_ports " . $gport . "]"; # [get_ports xxx]
 
     # emit the PACKAGE_PIN statement
     print CF "set_property PACKAGE_PIN ", $row->{"PACKAGE_PIN"}, $gport, "\n";
@@ -73,47 +79,47 @@ foreach my $row ( @{$aoh}) {
     print CF "set_property IOSTANDARD ", $row->{"IOSTANDARD"}, $gport, "\n"
 	if( $row->{"IOSTANDARD"});
 
+    # for VHDL, figure out the direction
     $dir = $row->{"Dir"} eq "in" || $row->{"Dir"} eq "IN" ? "in" : "out";
 
-    # collect the ports for later output
-    # check for a subscript
+    # check for subscripted name (containing "[")
     if( $nport =~ /\[/) {
 	# yes, get base name and subscript
 	my ($base, $subs) = $nport =~ /^(\w+)\[(\d+)\]$/;
-	# keep track of low and high subscripts and direction in range
-	if( !$range{$base}) {	# first time we've seen this name?
-	    $range{$base}{low} = $subs;
-	    $range{$base}{high} = $subs;
-	    $range{$base}{dir} = "??";
+	# keep track of low and high subscripts and direction in vectors
+	if( !$vectors{$base}) {	# first time we've seen this name?
+	    $vectors{$base}{low} = $subs;
+	    $vectors{$base}{high} = $subs;
+	    $vectors{$base}{dir} = "??";
 	} else {
-	    $range{$base}{low} = $subs
-		if( $subs < $range{$base}{low});
-	    $range{$base}{high} = $subs
-		if( $subs > $range{$base}{high});
-	    $range{$base}{dir} = $dir;
+	    $vectors{$base}{low} = $subs   if( $subs < $vectors{$base}{low});
+	    $vectors{$base}{high} = $subs  if( $subs > $vectors{$base}{high});
+	    $vectors{$base}{dir} = $dir;
 	}
     } else {
-	# simple name with no subscript, keep in a separate list
-	push @names, $nport;
-	$dirs{$nport} = $dir;
+	# simple name with no subscript, just record direction
+	$scalars{$nport}{dir} = $dir;
     }
 }
 
 # get total port count so we can recognized the last one
 # (for that pesky VHDL last-item ';' issue)
-my $nports = scalar(keys %range) + $#names + 1;
+#
+my $nports = scalar(keys %vectors) + scalar(keys %scalars);
 my $np = 0;
 
-foreach my $nam ( @names ) {
-    print VF "    $nam : ", $dirs{$nam}, " std_logic",
+# loop over the scalar ports
+foreach my $nam ( keys %scalars ) {
+    print VF "    $nam : ", $scalars{$nam}{dir}, " std_logic",
 	( $np == $nports-1) ? "\n" : ";\n";   # handle last-item ;
     $np++;
 }
 
-foreach my $nam ( keys %range) {
-    my $low = $range{$nam}{low};
-    my $high = $range{$nam}{high};
-    my $dir = $range{$nam}{dir};
+# loop over the vector ports
+foreach my $nam ( keys %vectors) {
+    my $low = $vectors{$nam}{low};
+    my $high = $vectors{$nam}{high};
+    my $dir = $vectors{$nam}{dir};
     print VF "    $nam : ", $dir, " std_logic_vector(",
 	$high, " downto ", $low, ")",
 	( $np == $nports-1) ? "\n" : ";\n"; # last-item ;
