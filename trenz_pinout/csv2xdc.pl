@@ -24,6 +24,7 @@ use Data::Dumper;
 die "Usage:  $0 <csv_file> <port_column> <constraint_file> <vhdl_file>\n" if( $#ARGV != 3);
 
 my $port = $ARGV[1];  # get VHDL port column name
+print "Looking for port name in column $port\n";
 
 # open the output files
 open CF, "> $ARGV[2]" or die "opening $ARGV[2] for output";
@@ -45,10 +46,18 @@ if( !$header->{"PACKAGE_PIN"} || !$header->{$port}) {
 my @extras;  # array to store "extra" column names
 
 # make a list of "extra" column names
+# keep track of the longest
+my $extra_len = 0;
 foreach my $col ( @cols) {
-    push @extras, $col 
-	if( $col ne "PACKAGE_PIN" && $col ne $port && $col ne "IOSTANDARD");
+    if( $col ne "PACKAGE_PIN" && $col ne $port && $col ne "IOSTANDARD") {
+	push @extras, $col;
+	$extra_len = length($col) if( length($col) > $extra_len);
+    }
 }
+# create a printf format
+my $extra_fmt = sprintf "%%-%ds", $extra_len;
+print "# format = \"$extra_fmt\"\n";
+
 
 # start the VHDL entity
 print VF qq{entity test is
@@ -63,15 +72,15 @@ my %vectors;			# vector ports
 
 # loop over each row in the file
 foreach my $row ( @{$aoh}) {
-    # print a comment with the extra columns
-    print CF "\n# ";
-    foreach $extra ( @extras ) {
-	print CF $extra, "=", $row->{$extra}," ";
-    };
+    # print comments with the extra columns
     print CF "\n";
+    foreach $extra ( @extras ) {
+	printf CF "# " . $extra_fmt . "  %s\n", 
+	    $extra, $row->{$extra};
+    };
 
     my $nport = $row->{$port};	               # port name
-    my $gport = " [get_ports " . $gport . "]"; # [get_ports xxx]
+    my $gport = " [get_ports " . $nport . "]"; # [get_ports xxx]
 
     # emit the PACKAGE_PIN statement
     print CF "set_property PACKAGE_PIN ", $row->{"PACKAGE_PIN"}, $gport, "\n";
@@ -82,6 +91,12 @@ foreach my $row ( @{$aoh}) {
     # for VHDL, figure out the direction
     $dir = $row->{"Dir"} eq "in" || $row->{"Dir"} eq "IN" ? "in" : "out";
 
+    print CF "set_property PULLUP true $gport\n" if( $dir eq "in");
+
+    # see if there's a comment column as "Notes"
+    my $comment = "";
+    $comment = $row->{"Notes"} if( $row->{"Notes"});
+
     # check for subscripted name (containing "[")
     if( $nport =~ /\[/) {
 	# yes, get base name and subscript
@@ -91,6 +106,7 @@ foreach my $row ( @{$aoh}) {
 	    $vectors{$base}{low} = $subs;
 	    $vectors{$base}{high} = $subs;
 	    $vectors{$base}{dir} = "??";
+	    $vectors{$base}{note} = $comment;
 	} else {
 	    $vectors{$base}{low} = $subs   if( $subs < $vectors{$base}{low});
 	    $vectors{$base}{high} = $subs  if( $subs > $vectors{$base}{high});
@@ -99,6 +115,7 @@ foreach my $row ( @{$aoh}) {
     } else {
 	# simple name with no subscript, just record direction
 	$scalars{$nport}{dir} = $dir;
+	$scalars{$nport}{note} = $comment;
     }
 }
 
@@ -108,26 +125,30 @@ foreach my $row ( @{$aoh}) {
 my $nports = scalar(keys %vectors) + scalar(keys %scalars);
 my $np = 0;
 
-# loop over the scalar ports
-foreach my $nam ( keys %scalars ) {
-    print VF "    $nam : ", $scalars{$nam}{dir}, " std_logic",
-	( $np == $nports-1) ? "\n" : ";\n";   # handle last-item ;
-    $np++;
-}
-
 # loop over the vector ports
-foreach my $nam ( keys %vectors) {
+foreach my $nam ( sort keys %vectors) {
     my $low = $vectors{$nam}{low};
     my $high = $vectors{$nam}{high};
     my $dir = $vectors{$nam}{dir};
+    my $note = $vectors{$nam}{note};
     print VF "    $nam : ", $dir, " std_logic_vector(",
 	$high, " downto ", $low, ")",
-	( $np == $nports-1) ? "\n" : ";\n"; # last-item ;
+	( $np == $nports-1) ? "" : ";",
+	( $note eq "") ? "\n" : "  --  ", $note, "\n";
+    $np++;
+}
+
+# loop over the scalar ports
+foreach my $nam ( sort keys %scalars ) {
+    my $note = $scalars{$nam}{note};
+    print VF "    $nam : ", $scalars{$nam}{dir}, " std_logic",
+	( $np == $nports-1) ? "" : ";",
+	( $note eq "") ? "\n" : "  --  ", $note, "\n";
     $np++;
 }
 
 print VF qq{
-
+)
 end entity test;
 };
 
