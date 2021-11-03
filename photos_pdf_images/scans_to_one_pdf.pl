@@ -19,7 +19,7 @@ my $rot = 0;
 for( my $i=0; $i<$na; $i++) {
     if( $ARGV[$i] =~ /^-([a-zA-Z])/) {
 	my ($opt) = $ARGV[$i] =~ /^-([a-zA-Z])/;
-	if( $i < $na-1) {
+	if( $i > $na-1) {
 	    die "Missing argument after $ARGV[$i]";
 	    exit;
 	}
@@ -45,8 +45,9 @@ for( my $i=$fa; $i<$na; $i++) {
     print "Processing $fscan\n";
     if( $fscan =~ /.jpg/) {
 	my $fjpg = $fscan;
-	my $fscan =~ s/.jpg/.png/;
-	my $cmd = "/usr/bin/djpeg $fjpg | pnmrotate -r $rot | pnmtopng > $fscan";
+	$fscan =~ s/.jpg/.png/;
+	print "Converting $fjpg to $fscan\n";
+	my $cmd = "/usr/bin/djpeg $fjpg | pnmrotate $rot | pnmtopng > $fscan";
 	print $cmd . "\n";
 	system $cmd;
     }
