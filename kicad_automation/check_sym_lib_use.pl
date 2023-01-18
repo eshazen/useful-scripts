@@ -72,14 +72,15 @@ while( readdir $dh) {
     }
 }
 
-print "\nsymbols not in project libs:\n";
-foreach my $sym ( @global_syms) {
-    print "   $sym\n";
-}
-
 print "\nunused local libraries:\n";
 foreach my $slib ( sort keys %simlib) {
     if( ! $design_libs{$slib}) {
 	print "$slib\n";
     }
 }
+
+print "\nGlobal? symbols.  (not in project libs):\n";
+foreach my $sym ( sort @global_syms) {
+    print "   $sym\n";
+}
+
