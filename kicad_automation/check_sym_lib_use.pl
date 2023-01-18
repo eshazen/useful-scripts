@@ -15,6 +15,10 @@ sub getsval {
     return $val;
 }
 
+# check for symbol libraries in sym-lib-table existing
+# and make a list
+my %simlib;
+
 print "Checking sym-lib-table:\n";
 while( my $line = <$sl>) {
     if( $line =~ /\(lib/) {
@@ -25,10 +29,57 @@ while( my $line = <$sl>) {
 	$uri =~ s/\$\{KIPRJMOD\}/\./;
 	if( ! -f $uri) {
 	    print "MISSING: name=$name type=$type uri=$uri\n";
+	    $simlib{$name} = [ $type, $uri, "MISSING" ];
 	} else {
 	    print "  FOUND: name=$name type=$type uri=$uri\n";
+	    $simlib{$name} = [ $type, $uri, "FOUND" ];
 	}
     }
 }
+close $sl;
 print "\n";
 
+# now check all schematic files for symbol libraries
+#
+print "Checking schematics for symbols\n";
+opendir( my $dh, ".");
+
+my %design_libs;
+my @global_syms;
+
+while( readdir $dh) {
+    my $fn = $_;
+    if( $fn =~ /kicad_sch$/) {
+	print "Processing ./$_\n";
+	my $sch;
+	open( $sch, "<", $fn) or die "opening $fn";
+
+	while( my $line = <$sch>) {
+	    chomp $line;
+	    if( $line =~ /lib_id/) {
+		my $sname = getsval( $line, "lib_id");
+		my @d = split ":", $sname;
+		my $lib = $d[0];
+		my $sym = $d[1];
+		if( $simlib{$lib}) {
+		    $design_libs{$lib}++;
+		} else {
+		    push @global_syms, $sname;
+		}
+	    }
+	}
+	close $sch;
+    }
+}
+
+print "\nsymbols not in project libs:\n";
+foreach my $sym ( @global_syms) {
+    print "   $sym\n";
+}
+
+print "\nunused local libraries:\n";
+foreach my $slib ( sort keys %simlib) {
+    if( ! $design_libs{$slib}) {
+	print "$slib\n";
+    }
+}
