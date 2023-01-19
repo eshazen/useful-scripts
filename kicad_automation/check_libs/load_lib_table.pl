@@ -1,11 +1,28 @@
 #!/usr/bin/perl
 #
+# load_lib_table.pl:  Functions to manipulate KiCAD 6 library/footprint tables
+#
+# ($table_name, $list) = load_lib_table( file-name)
+#
 # load a KiCAD symbol or footprint library table list from a file
 # return a two-item list:
 #    item 1:  table name (typ "sym-lib-table" or "fp-lib-table"
 #    item 2:  list of hash refs, one hash per table
 #             typically the keys are "name", "type", "uri", "options" and "descr"
 # not much error checking, die on errors noticed
+#
+# $nmiss = check_files_in_table( $table)
+#
+# check symbol or footprint table to be sure the library files/directories exist
+# return the number of missing ones and print messages
+# NOTE:  KIPRJMOD, KICAD_6_SYMBOL_DIR and KICAD6_FOOTPRINT_DIR are hard-wired here
+#
+# $n = find_name_in_table( $name, $table)
+#
+# look up a library name in a table
+# return the index in table if found, -1 if not found
+#
+
 
 use strict;
 use Data::Dumper;

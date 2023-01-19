@@ -2,6 +2,11 @@
 #
 # parse s-expressions into a data structure
 # from Rosetta Code
+#
+# returns a nested list of references to lists which represents the s-expression
+# (best dump with Data::Dumper to understand!)
+# works fine for KiCAD files AFAIK
+#
 
 use strict;
 use warnings;
