@@ -83,7 +83,7 @@ foreach my $slib ( @{$local_syms}) {
     print "Check local $sname\n" if($debug);
     foreach my $glib ( @{$global_syms}) {
 	if( $slib->{"name"} eq $glib->{"name"}) {
-	    print "WARNING: symbol lib $sname also in global libraries\n";
+	    print "WARNING: symbol lib \"$sname\" also in global libraries\n";
 	}
     }
 }
@@ -94,7 +94,7 @@ foreach my $slib ( @{$local_fps}) {
     print "Check local $sname\n" if($debug);
     foreach my $glib ( @{$global_fps}) {
 	if( $slib->{"name"} eq $glib->{"name"}) {
-	    print "WARNING: footprint lib $sname also in global libraries\n";
+	    print "WARNING: footprint lib \"$sname\" also in global libraries\n";
 	}
     }
 }
@@ -162,10 +162,10 @@ foreach my $lib ( sort keys %schem_libs) {
     my $rcl = find_name_in_table( $lib, $local_syms);
     my $rcg = find_name_in_table( $lib, $global_syms);
     if( $rcl >= 0 && $rcg >= 0) { # both?
-	print "WARNING:  symbol library $lib is found in both local and global library lists\n";
+	print "WARNING:  symbol library \"$lib\" is found in both local and global library lists\n";
     }
     if( $rcl < 0 && $rcg < 0) {
-	print "WARNING:  symbol library $lib is not found in either local or global library lists\n";
+	print "WARNING:  symbol library \"$lib\" is not found in either local or global library lists\n";
     }
 }
 
@@ -174,10 +174,10 @@ foreach my $lib ( sort keys %fp_libs) {
     my $rcl = find_name_in_table( $lib, $local_fps);
     my $rcg = find_name_in_table( $lib, $global_fps);
     if( $rcl >= 0 && $rcg >= 0) { # both?
-	print "WARNING:  footprint library $lib is found in both local and global library lists\n";
+	print "WARNING:  footprint library \"$lib\" is found in both local and global library lists\n";
     }
     if( $rcl < 0 && $rcg < 0) {
-	print "WARNING:  footprint library $lib is not found in either local or global library lists\n";
+	print "WARNING:  footprint library \"$lib\" is not found in either local or global library lists\n";
     }
 }
 
