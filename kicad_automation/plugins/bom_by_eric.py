@@ -98,15 +98,15 @@ def writerow( acsvwriter, columns ):
     acsvwriter.writerow( utf8row )
 
 # Output a set of rows as a header providing general information
-writerow( out, ['Source:', net.getSource()] )
-writerow( out, ['Date:', net.getDate()] )
-writerow( out, ['Tool:', net.getTool()] )
-writerow( out, ['Generator:', sys.argv[0]] )
-writerow( out, ['Component Count:', len(components)] )
-writerow( out, [] )
-writerow( out, ['Individual Components:'] )
-writerow( out, [] )                        # blank line
-writerow( out, columns )
+## writerow( out, ['Source:', net.getSource()] )
+## writerow( out, ['Date:', net.getDate()] )
+## writerow( out, ['Tool:', net.getTool()] )
+## writerow( out, ['Generator:', sys.argv[0]] )
+## writerow( out, ['Component Count:', len(components)] )
+## writerow( out, [] )
+## writerow( out, ['Individual Components:'] )
+## writerow( out, [] )                        # blank line
+## writerow( out, columns )
 
 ## # Output all the interesting components individually first:
 row = []
