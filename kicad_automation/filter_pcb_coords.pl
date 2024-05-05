@@ -1,18 +1,39 @@
 #!/usr/bin/perl
 #
-# find all placements / vertices which fit in a range and apply a translation
+# find all placements / vertices which fit in a range and print
 #
 my $debug = 0;
 
-my $x_trans = 410;
+my $line;
+
+my $na = $#ARGV+1;
+
+if( $na < 5) {
+    print "usage: $0 x0 x1 y0 y1 file        # just display \n";
+    print "       $0 x0 x1 y0 y1 dx dy file  # offset by dx, dy\n";
+    exit;
+}
+
+my $x_min = $ARGV[0];
+my $x_max = $ARGV[1];
+my $y_min = $ARGV[2];
+my $y_max = $ARGV[3];
+my $fn = $ARGV[4];
+
+my $x_trans = 0;
 my $y_trans = 0;
 
-my $x_min = 63;
-my $x_max = 110;
-my $y_min = 50;
-my $y_max = 100;
+my $modify = 0;
 
-my $line;
+if( $na == 7) {
+    $x_trans = $ARGV[4];
+    $y_trans = $ARGV[5];
+    $fn = $ARGV[6];
+    $modify = 1;
+}
+
+open my $FH, "< $fn" or die "opening $fn: $!";
+
 
 #
 # my_add( a, b)
@@ -43,15 +64,17 @@ sub my_add {
     return $res;
 }
 
-my @keywords = ( "start", "end", "at", "xy");
+my @keywords = ( "start", "end", "at", "xy", "mid");
 
-while( $line = <>) {
+my %coords;
+
+while( $line = <$FH>) {
     chomp $line;
     foreach $keyword ( @keywords) {
 	my $match = "\\(" . $keyword . "\\s+([0-9. ]*)\\)";
 #	print "Match= [$match]\n" if($debug);
 	if( $line =~ /$match/) {
-#	    print "Matched!  $line\n" if($debug);
+	    print "Matched!  $line\n" if($debug);
 	    my ($coord) = $line =~ /$match/;
 	    my ($x,$y) = $coord =~ /(\S+)\s(\S+)/;
 	    # split coord so we can keep extra stuff
@@ -67,9 +90,17 @@ while( $line = <>) {
 		print "B-LINE: $line\n" if($debug);
 		$line =~ s/$coord/$newcoord/;
 		print "A-LINE: $line\n" if($debug);
-		$subs++;
+		print "$line\n" if( !$modify);
+		$coords{"$coord"}++;
 	    }
 	}
     }
-    print "$line\n" if( !$debug);
+    print "$line\n" if( !$debug && $modify);
+}
+
+if( !$modify) {
+    foreach my $c ( sort keys %coords ) {
+	my $v = $coords{$c};
+	printf "%-20s %d\n", $c, $v;
+    }
 }
